@@ -1,6 +1,6 @@
-import { Rover } from '../src/Rover';
+import assert from 'assert';
 
-const assert = require('assert');
+import { Rover } from '../src/Rover';
 
 describe('Rover', function () {
   describe('Navigation', function () {
