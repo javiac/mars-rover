@@ -33,15 +33,16 @@ export class Rover {
     };
   }
 
-  public getStatus() {
+  public getStatus(): Status {
     return this.status;
   }
 
-  public runCommands(input: string) {
+  public runCommands(input: string): void {
     const commands = input.split('');
     let xUpdate = this.status.x;
     let yUpdate = this.status.y;
     this.status.message = undefined;
+    let index;
 
     for (const command of commands) {
       switch (command) {
@@ -78,12 +79,12 @@ export class Rover {
           }
           break;
         case Command.left:
-          const index = headings.indexOf(this.status.heading);
+          index = headings.indexOf(this.status.heading);
           this.status.heading = headings[index > 0 ? index - 1 : 3];
           break;
         case Command.right:
-          const index2 = headings.indexOf(this.status.heading);
-          this.status.heading = headings[(index2 + 1) % 4];
+          index = headings.indexOf(this.status.heading);
+          this.status.heading = headings[(index + 1) % 4];
           break;
         default:
           throw new Error('Unknown command ' + command);
@@ -100,7 +101,7 @@ export class Rover {
     return;
   }
 
-  public setObstacles(obstacles: number[][]) {
+  public setObstacles(obstacles: number[][]): void {
     for (const obstacle of obstacles) {
       if (!this.obstacles[obstacle[0]]) {
         this.obstacles[obstacle[0]] = [];
@@ -143,18 +144,18 @@ export class Rover {
     return this.tryPositions(positions, path, x, y);
   }
 
-  public isObstacle(point: Point) {
+  public isObstacle(point: Point): boolean {
     return this.obstacles[point.x] && this.obstacles[point.x][point.y];
   }
 
-  public isInPath(point: Point, path: Point[]) {
+  public isInPath(point: Point, path: Point[]): boolean {
     return (
       path.find((item) => item.x === point.x && item.y === point.y) !== undefined ||
       (point.x === this.status.x && point.y === this.status.y)
     );
   }
 
-  public tryPositions(positions: Point[], path: Point[], x: number, y: number) {
+  public tryPositions(positions: Point[], path: Point[], x: number, y: number): Point[] {
     let route: Point[] = [];
     for (const position of positions) {
       if (!this.isObstacle(position) && !this.isInPath(position, path)) {
@@ -168,14 +169,14 @@ export class Rover {
     return route;
   }
 
-  public followRoute(route: Point[]) {
+  public followRoute(route: Point[]): void {
     for (const point of route) {
       const commands = this.moveToAdyacent(point);
       this.runCommands(commands);
     }
   }
 
-  public moveToAdyacent(point: Point) {
+  public moveToAdyacent(point: Point): string {
     if (Math.abs(point.x - this.status.x) + Math.abs(point.y - this.status.y) !== 1) {
       throw new Error('Point not adyacent');
     }
@@ -194,7 +195,7 @@ export class Rover {
     return command + Command.forward;
   }
 
-  public faceNorth() {
+  public faceNorth(): string {
     let command = '';
     switch (this.status.heading) {
       case 'NORTH':
@@ -213,7 +214,7 @@ export class Rover {
     return command;
   }
 
-  public faceSouth() {
+  public faceSouth(): string {
     let command = '';
     switch (this.status.heading) {
       case 'NORTH':
@@ -232,7 +233,7 @@ export class Rover {
     return command;
   }
 
-  public faceWest() {
+  public faceWest(): string {
     let command = '';
     switch (this.status.heading) {
       case 'NORTH':
@@ -251,7 +252,7 @@ export class Rover {
     return command;
   }
 
-  public faceEast() {
+  public faceEast(): string {
     let command = '';
     switch (this.status.heading) {
       case 'NORTH':
