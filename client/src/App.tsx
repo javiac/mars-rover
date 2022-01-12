@@ -3,6 +3,7 @@ import styles from './App.module.css';
 
 const canvasWidth = 1000;
 const canvasHeight = 800;
+const cellSize = 50;
 
 type Heading = 'NORTH' | 'SOUTH' | 'WEST' | 'EAST';
 
@@ -17,6 +18,8 @@ function App() {
   const [userY, setUserY] = useState<number>(0);
   const [userHeading, setUserHeading] = useState<Heading>();
   const [roverStatus, setRoverStatus] = useState<RoverStatus>();
+  const [obstaclesInput, setObstaclesInput] = useState<string>();
+  const [obstacles, setObstacles] = useState<number[][]>();
 
   useEffect(() => {
     setInterval(async () => {
@@ -37,20 +40,91 @@ function App() {
       const ctx = c.getContext('2d');
       if (ctx) {
         const img = document.getElementById('rover') as HTMLImageElement;
+        ctx.save();
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        ctx.drawImage(img, roverStatus.x, roverStatus.y);
+
+        let angle = 0;
+        console.log(roverStatus.heading);
+        switch (roverStatus.heading) {
+          case 'NORTH':
+            angle = 0;
+            break;
+          case 'EAST':
+            angle = 90;
+            break;
+          case 'SOUTH':
+            angle = 180;
+            break;
+          case 'WEST':
+            angle = 270;
+            break;
+        }
+        ctx.translate(-scaleX(roverStatus.x) - img.width / 2, -scaleY(roverStatus.y) - img.height / 2);
+        ctx.rotate((angle * Math.PI) / 180);
+        ctx.drawImage(img, scaleX(roverStatus.x), scaleY(roverStatus.y), cellSize, cellSize);
+        ctx.restore();
+        for (let x = 0; x < canvasWidth; x += cellSize) {
+          ctx.fillRect(x, 0, 1, canvasHeight);
+        }
+
+        for (let y = 0; y < canvasHeight; y += cellSize) {
+          ctx.fillRect(0, y, canvasWidth, 1);
+        }
+
+        if (obstacles) {
+          for (const obstacle of obstacles) {
+            ctx.fillRect(scaleX(obstacle[0]), scaleY(obstacle[1]), cellSize, cellSize);
+          }
+        }
       }
     }
-  }, [roverStatus]);
+  }, [roverStatus, obstacles]);
 
-  async function initialize() {
-    await fetch(`http://localhost:8080/rover/initialize`, {
+  useEffect(() => {
+    if (obstacles && obstacles.length > 0) {
+      fetch(`http://localhost:8080/rover/obstacles`, {
+        method: 'POST',
+        body: JSON.stringify(obstacles),
+        headers: {
+          'content-type': 'application/json'
+        }
+      });
+    }
+  }, [obstacles]);
+
+  function initialize() {
+    fetch(`http://localhost:8080/rover/initialize`, {
       method: 'POST',
       body: JSON.stringify({ x: userX, y: userY, heading: userHeading }),
       headers: {
         'content-type': 'application/json'
       }
     });
+  }
+
+  function scaleY(y: number) {
+    return (
+      ((0 - (canvasHeight - cellSize)) / ((canvasHeight - cellSize) / cellSize - 0)) * y + (canvasHeight - cellSize)
+    );
+  }
+
+  function scaleX(x: number) {
+    return x * cellSize;
+  }
+
+  function handleSetObstacles() {
+    if (!obstaclesInput) {
+      return;
+    }
+
+    let parsedObstacles = [];
+    try {
+      parsedObstacles = JSON.parse(obstaclesInput);
+    } catch (e) {
+      return;
+    }
+
+    setObstacles(parsedObstacles);
   }
 
   return (
@@ -94,7 +168,11 @@ function App() {
         </form>
         <button onClick={initialize}> Initialize </button>
       </div>
-      <img id="rover" src="rover.png" alt="The Scream" width="100" height="100" className={styles.roverImage} />
+      <div className={styles.inputContainer}>
+        <input placeholder="Obstacles" onChange={(e) => setObstaclesInput(e.target.value)} />
+        <button onClick={handleSetObstacles}> Set obstacles </button>
+      </div>
+      <img id="rover" src="rover.png" alt="The Scream" className={styles.roverImage} />
       <canvas id="myCanvas" width={canvasWidth} height={canvasHeight} className={styles.canvas}></canvas>
     </div>
   );

@@ -25,6 +25,11 @@ app.get('/rover/status', (req, res) => {
   res.json({ status: rover.getStatus() });
 });
 
+app.post('/rover/obstacles', (req, res) => {
+  rover.setObstacles(req.body);
+  res.status(200).send();
+});
+
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
