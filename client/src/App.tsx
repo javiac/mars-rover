@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import styles from './App.module.css';
 
-const canvasWidth = 1000;
-const canvasHeight = 800;
-const cellSize = 50;
+const canvasWidth = 500;
+const canvasHeight = 500;
+const cellSize = 25;
 
 type Heading = 'NORTH' | 'SOUTH' | 'WEST' | 'EAST';
 
@@ -11,6 +11,7 @@ interface RoverStatus {
   x: number;
   y: number;
   heading: Heading;
+  message?: string;
 }
 
 function App() {
@@ -20,6 +21,9 @@ function App() {
   const [roverStatus, setRoverStatus] = useState<RoverStatus>();
   const [obstaclesInput, setObstaclesInput] = useState<string>();
   const [obstacles, setObstacles] = useState<number[][]>();
+  const [commands, setCommands] = useState<string>();
+  const [targetX, setTargetX] = useState<number>();
+  const [targetY, setTargetY] = useState<number>();
 
   useEffect(() => {
     setInterval(async () => {
@@ -31,7 +35,7 @@ function App() {
       });
       const status = (await response.json()).status as RoverStatus;
       setRoverStatus(status);
-    }, 1000);
+    }, 500);
   }, []);
 
   useEffect(() => {
@@ -43,25 +47,48 @@ function App() {
         ctx.save();
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
+        if (targetX !== undefined && targetY !== undefined) {
+          ctx.beginPath();
+          ctx.fillStyle = 'green';
+          ctx.arc(scaleX(targetX) + cellSize / 2, scaleY(targetY) + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = '#003300';
+          ctx.stroke();
+          ctx.fillStyle = 'black';
+        }
+
         let angle = 0;
-        console.log(roverStatus.heading);
+        let translateX = 0;
+        let translateY = 0;
+        const xIncrement = scaleX(roverStatus.x) + img.width / 2;
+        const yIncrement = scaleY(roverStatus.y) + img.height / 2;
         switch (roverStatus.heading) {
           case 'NORTH':
             angle = 0;
+            translateX = xIncrement;
+            translateY = yIncrement;
             break;
           case 'EAST':
             angle = 90;
+            translateX = yIncrement;
+            translateY = -xIncrement;
             break;
           case 'SOUTH':
             angle = 180;
+            translateX = -xIncrement;
+            translateY = -yIncrement;
             break;
           case 'WEST':
             angle = 270;
+            translateX = -yIncrement;
+            translateY = xIncrement;
             break;
         }
-        ctx.translate(-scaleX(roverStatus.x) - img.width / 2, -scaleY(roverStatus.y) - img.height / 2);
+        ctx.save();
         ctx.rotate((angle * Math.PI) / 180);
-        ctx.drawImage(img, scaleX(roverStatus.x), scaleY(roverStatus.y), cellSize, cellSize);
+        ctx.translate(translateX, translateY);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2, cellSize, cellSize);
         ctx.restore();
         for (let x = 0; x < canvasWidth; x += cellSize) {
           ctx.fillRect(x, 0, 1, canvasHeight);
@@ -78,7 +105,7 @@ function App() {
         }
       }
     }
-  }, [roverStatus, obstacles]);
+  }, [roverStatus, obstacles, targetX, targetY]);
 
   useEffect(() => {
     if (obstacles && obstacles.length > 0) {
@@ -95,7 +122,7 @@ function App() {
   function initialize() {
     fetch(`http://localhost:8080/rover/initialize`, {
       method: 'POST',
-      body: JSON.stringify({ x: userX, y: userY, heading: userHeading }),
+      body: JSON.stringify({ x: userX, y: userY, heading: userHeading, obstacles }),
       headers: {
         'content-type': 'application/json'
       }
@@ -127,11 +154,31 @@ function App() {
     setObstacles(parsedObstacles);
   }
 
+  function handleSendCommands() {
+    fetch(`http://localhost:8080/rover/commands`, {
+      method: 'POST',
+      body: JSON.stringify({ commands: commands }),
+      headers: {
+        'content-type': 'application/json'
+      }
+    });
+  }
+
+  function handleNavigate() {
+    fetch(`http://localhost:8080/rover/navigate`, {
+      method: 'POST',
+      body: JSON.stringify({ x: targetX, y: targetY }),
+      headers: {
+        'content-type': 'application/json'
+      }
+    });
+  }
+
   return (
     <div>
       <div className={styles.inputsContainer}>
-        <input placeholder="Init x" onChange={(e) => setUserX(Number(e.target.value))} />
-        <input placeholder="Init y" onChange={(e) => setUserY(Number(e.target.value))} />
+        <input type="number" placeholder="Init x" onChange={(e) => setUserX(Number(e.target.value))} />
+        <input type="number" placeholder="Init y" onChange={(e) => setUserY(Number(e.target.value))} />
         <form>
           <input
             type="radio"
@@ -171,8 +218,26 @@ function App() {
       <div className={styles.inputContainer}>
         <input placeholder="Obstacles" onChange={(e) => setObstaclesInput(e.target.value)} />
         <button onClick={handleSetObstacles}> Set obstacles </button>
+        <label>
+          Ex: [ [3, 2], [2, 3], [2, 1], [1, 3], [0, 3], [-1, 3], [-1, 2], [-1, 1], [0, 1], [4, 5], [4, 4], [5, 4], [6,
+          4], [6, 5], [4, 3], [6, 3] ]
+        </label>
       </div>
-      <img id="rover" src="rover.png" alt="The Scream" className={styles.roverImage} />
+      <div className={styles.inputContainer}>
+        <input placeholder="Commands" onChange={(e) => setCommands(e.target.value)} />
+        <button onClick={handleSendCommands}> Send commands </button>
+        Ex: FFRFFLRRB
+      </div>
+      <div className={styles.inputContainer}>
+        Message:
+        {roverStatus && roverStatus.message ? roverStatus.message : ''}
+      </div>
+      <div className={styles.inputContainer}>
+        <input type="number" placeholder="Target X" onChange={(e) => setTargetX(Number(e.target.value))} />
+        <input type="number" placeholder="Target Y" onChange={(e) => setTargetY(Number(e.target.value))} />
+        <button onClick={handleNavigate}> Navigate </button>
+      </div>
+      <img id="rover" src="rover.png" alt="Rover" className={styles.roverImage} width={cellSize} height={cellSize} />
       <canvas id="myCanvas" width={canvasWidth} height={canvasHeight} className={styles.canvas}></canvas>
     </div>
   );

@@ -12,15 +12,15 @@ describe('Rover', function () {
       assert.equal(coordinates.heading, 'WEST');
     });
 
-    it('should run FLFFFRFLB and return 6, 4, NORTH', function () {
+    it('should run FLFFFRFLB and return 6, 4, NORTH', async function () {
       const rover = new Rover(4, 2, 'EAST');
-      rover.runCommands('FLFFFRFLB');
+      await rover.runCommands('FLFFFRFLB', 0);
       assert.equal(rover.getStatus().x, 6);
       assert.equal(rover.getStatus().y, 4);
       assert.equal(rover.getStatus().heading, 'NORTH');
     });
 
-    it('should stop and report 3, 4 WEST STOPPED', function () {
+    it('should stop and report 3, 4 WEST STOPPED', async function () {
       const rover = new Rover(5, 4, 'WEST');
 
       rover.setObstacles([
@@ -28,7 +28,7 @@ describe('Rover', function () {
         [3, 5],
         [7, 4]
       ]);
-      rover.runCommands('FFFFFFFFFFF');
+      await rover.runCommands('FFFFFFFFFFF', 0);
 
       const coordinates = rover.getStatus();
       assert.equal(coordinates.x, 2);
@@ -37,7 +37,7 @@ describe('Rover', function () {
       assert.equal(coordinates.message, 'STOPPED');
     });
 
-    it('should run commands and report report 10, 10, NORTH', function () {
+    it('should run commands and report report 10, 10, NORTH', async function () {
       const rover = new Rover(0, 0, 'NORTH');
 
       rover.setObstacles([
@@ -45,7 +45,7 @@ describe('Rover', function () {
         [3, 5],
         [7, 4]
       ]);
-      rover.runCommands('RFLFFFRFFFLFFFFFFFRFFFFFFL');
+      await rover.runCommands('RFLFFFRFFFLFFFFFFFRFFFFFFL', 0);
 
       const coordinates = rover.getStatus();
       assert.equal(coordinates.x, 10);
@@ -54,7 +54,7 @@ describe('Rover', function () {
       assert.equal(coordinates.message, undefined);
     });
 
-    it('should report 5, 5 after navigating avoiding obstacles', function () {
+    it('should report 5, 5 after navigating avoiding obstacles', async function () {
       const rover = new Rover(0, 0, 'NORTH');
       rover.setObstacles([
         [3, 0],
@@ -76,7 +76,7 @@ describe('Rover', function () {
       ]);
 
       const route = rover.navigate(5, 5, []);
-      rover.followRoute(route);
+      await rover.followRoute(route, 0);
       const status = rover.getStatus();
       assert.equal(status.x, 5);
       assert.equal(status.y, 5);

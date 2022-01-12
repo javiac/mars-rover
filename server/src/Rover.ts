@@ -1,3 +1,5 @@
+import { delay } from './utils/delay';
+
 interface Status {
   x: number;
   y: number;
@@ -37,7 +39,7 @@ export class Rover {
     return this.status;
   }
 
-  public runCommands(input: string): void {
+  public async runCommands(input: string, msDelay?: number): Promise<void> {
     const commands = input.split('');
     let xUpdate = this.status.x;
     let yUpdate = this.status.y;
@@ -45,6 +47,8 @@ export class Rover {
     let index;
 
     for (const command of commands) {
+      await delay(msDelay ?? 500);
+
       switch (command) {
         case Command.forward:
           switch (this.status.heading) {
@@ -169,10 +173,10 @@ export class Rover {
     return route;
   }
 
-  public followRoute(route: Point[]): void {
+  public async followRoute(route: Point[], msDelay?: number): Promise<void> {
     for (const point of route) {
       const commands = this.moveToAdyacent(point);
-      this.runCommands(commands);
+      await this.runCommands(commands, msDelay);
     }
   }
 
