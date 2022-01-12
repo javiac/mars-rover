@@ -4,9 +4,13 @@
 
 ## Project structure
 
-server. NodeJS server that simulates rover navigation and receive commands
-client. React app that shows a canvas and controls to initialize the rover, set obstacles, send commands and navigate.
-doc. Description of the problem.
+### Server
+
+NodeJS server that simulates rover navigation and receive commands.
+
+### Client
+
+React app that shows a canvas and controls to initialize the rover, set obstacles, send commands and navigate.
 
 ## Run server tests
 
